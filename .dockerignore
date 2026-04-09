@@ -1,0 +1,11 @@
+build/
+.git/
+.vscode/
+.idea/
+CLAUDE.md
+PRD.md
+PLAN.md
+*.md
+!README.md
+.env
+vcpkg_installed/

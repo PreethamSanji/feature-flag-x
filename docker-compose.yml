@@ -1,0 +1,55 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: ffx-postgres
+    environment:
+      POSTGRES_DB: featureflagx
+      POSTGRES_USER: ffx
+      POSTGRES_PASSWORD: ffx_secret
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./sql/migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ffx -d featureflagx"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: ffx-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ffx-app
+    ports:
+      - "8080:8080"
+    environment:
+      FFX_DB_HOST: postgres
+      FFX_DB_PORT: "5432"
+      FFX_DB_NAME: featureflagx
+      FFX_DB_USER: ffx
+      FFX_DB_PASSWORD: ffx_secret
+      FFX_REDIS_HOST: redis
+      FFX_REDIS_PORT: "6379"
+      FFX_JWT_SECRET: change-me-in-production
+      FFX_SERVER_PORT: "8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+volumes:
+  pgdata:
