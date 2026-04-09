@@ -23,7 +23,7 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /opt
 RUN git clone https://github.com/microsoft/vcpkg.git && \
     cd vcpkg && \
-    git checkout a1a1cbc975e36b0f4c0a3c0dfe9ea12a27b2ab7a && \
+    git checkout 2026.03.18 && \
     cd .. && \
     ./vcpkg/bootstrap-vcpkg.sh -disableMetrics
 
