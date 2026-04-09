@@ -1,0 +1,109 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-22.04
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_DB: featureflagx
+          POSTGRES_USER: ffx
+          POSTGRES_PASSWORD: ffx_secret
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U ffx -d featureflagx"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    env:
+      FFX_DB_HOST: localhost
+      FFX_DB_PORT: "5432"
+      FFX_DB_NAME: featureflagx
+      FFX_DB_USER: ffx
+      FFX_DB_PASSWORD: ffx_secret
+      FFX_REDIS_HOST: localhost
+      FFX_REDIS_PORT: "6379"
+      FFX_JWT_SECRET: ci-test-secret
+      VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/.vcpkg-cache
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential cmake ninja-build \
+            libssl-dev libpq-dev uuid-dev zlib1g-dev \
+            curl zip unzip tar pkg-config
+
+      - name: Setup vcpkg
+        uses: lukka/run-vcpkg@v11
+        with:
+          vcpkgGitCommitId: "a1a1cbc975e36b0f4c0a3c0dfe9ea12a27b2ab7a"
+
+      - name: Cache vcpkg packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ github.workspace }}/.vcpkg-cache
+          key: vcpkg-${{ runner.os }}-${{ hashFiles('vcpkg.json') }}
+          restore-keys: |
+            vcpkg-${{ runner.os }}-
+
+      - name: Configure CMake
+        run: |
+          mkdir -p .vcpkg-cache
+          cmake -B build \
+            -DCMAKE_TOOLCHAIN_FILE=$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake \
+            -DCMAKE_BUILD_TYPE=Release \
+            -G Ninja
+
+      - name: Build
+        run: cmake --build build --parallel
+
+      - name: Run migrations
+        run: |
+          PGPASSWORD=$FFX_DB_PASSWORD psql \
+            -h localhost -U $FFX_DB_USER -d $FFX_DB_NAME \
+            -f sql/migrations/001_init.sql
+          PGPASSWORD=$FFX_DB_PASSWORD psql \
+            -h localhost -U $FFX_DB_USER -d $FFX_DB_NAME \
+            -f sql/migrations/002_audit_log.sql
+
+      - name: Run tests
+        run: cd build && ctest --output-on-failure
+
+  docker-build:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate docker-compose config
+        run: docker compose config
+
+      - name: Build Docker image
+        run: docker build -t featureflagx:ci .
