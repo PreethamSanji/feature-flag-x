@@ -1,0 +1,42 @@
+# Build
+build/
+cmake-build-*/
+out/
+
+# vcpkg
+vcpkg_installed/
+vcpkg/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.vs/
+CMakeSettings.json
+CMakePresets.json
+
+# Environment
+.env
+*.env.local
+
+# Planning docs (local only)
+CLAUDE.md
+PRD.md
+PLAN.md
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Compiled
+*.o
+*.obj
+*.exe
+*.out
+*.app
+*.dll
+*.so
+*.dylib

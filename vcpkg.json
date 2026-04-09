@@ -1,0 +1,14 @@
+{
+  "name": "featureflagx",
+  "version-string": "0.1.0",
+  "description": "Distributed feature flag and configuration management service",
+  "dependencies": [
+    "drogon",
+    "libpqxx",
+    "hiredis",
+    "redis-plus-plus",
+    "jwt-cpp",
+    "nlohmann-json",
+    "gtest"
+  ]
+}
