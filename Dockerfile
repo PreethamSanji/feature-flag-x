@@ -22,6 +22,9 @@ RUN apt-get update && apt-get install -y \
 # Install vcpkg
 WORKDIR /opt
 RUN git clone https://github.com/microsoft/vcpkg.git && \
+    cd vcpkg && \
+    git checkout a1a1cbc975e36b0f4c0a3c0dfe9ea12a27b2ab7a && \
+    cd .. && \
     ./vcpkg/bootstrap-vcpkg.sh -disableMetrics
 
 ENV VCPKG_ROOT=/opt/vcpkg
